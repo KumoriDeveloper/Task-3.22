@@ -1,0 +1,11 @@
+# Vercel uploads only what is needed for the build. dist/ is produced during the
+# build, so it does not need to be uploaded; local secrets must never leave the machine.
+.git
+.github
+dist
+coverage
+test
+.vercel
+.env*
+*.log
+.DS_Store

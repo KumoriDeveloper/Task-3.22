@@ -9,13 +9,21 @@
     "start": "node dist/main.js",
     "start:dev": "nest start --watch",
     "start:prod": "node dist/main.js",
+    "postinstall": "prisma generate",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
-    "format": "prettier --write \"src/**/*.ts\" \"public/**/*.{html,css,js}\" \"*.md\"",
+    "db:deploy": "prisma migrate deploy",
+    "db:seed": "npm run build && node dist/database/seed.cli.js",
+    "db:setup": "npm run db:deploy && npm run db:seed",
+    "vercel-build": "node scripts/vercel-build.js",
+    "format": "prettier --write \"src/**/*.ts\" \"public/**/*.{html,css,js}\" \"scripts/**/*.js\" \"api/**/*.js\" \"*.md\"",
     "typecheck": "tsc --noEmit",
     "test:e2e": "jest --config test/jest-e2e.json --runInBand"
+  },
+  "engines": {
+    "node": "22.x"
   },
   "dependencies": {
     "@apollo/server": "^5.0.0",

@@ -1,0 +1,30 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "buildCommand": "node scripts/vercel-build.js",
+  "installCommand": "npm ci",
+  "outputDirectory": "public",
+  "functions": {
+    "api/index.js": {
+      "maxDuration": 30,
+      "includeFiles": [
+        "dist/**",
+        "prisma/schema.prisma",
+        "node_modules/.prisma/client/**",
+        "node_modules/@prisma/client/**"
+      ]
+    }
+  },
+  "rewrites": [
+    { "source": "/graphql", "destination": "/api" },
+    { "source": "/graphql/", "destination": "/api" },
+    { "source": "/health", "destination": "/api" },
+    { "source": "/health/", "destination": "/api" }
+  ],
+  "headers": [
+    {
+      "source": "/admin/:path*",
+      "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
+    }
+  ]
+}

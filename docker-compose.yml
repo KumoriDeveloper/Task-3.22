@@ -29,12 +29,14 @@ services:
     environment:
       DATABASE_URL: postgresql://portfolio:portfolio@db:5432/portfolio?schema=public
       APP_PORT: 3000
-      JWT_SECRET: ${JWT_SECRET:-local-development-secret-change-me}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-12h}
-      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin12345}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:?Set ADMIN_EMAIL in .env}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Set ADMIN_PASSWORD in .env}
       ADMIN_NAME: ${ADMIN_NAME:-Portfolio Admin}
       SEED_PORTFOLIO: ${SEED_PORTFOLIO:-true}
+      GRAPHQL_SANDBOX: ${GRAPHQL_SANDBOX:-false}
+      GRAPHQL_INTROSPECTION: ${GRAPHQL_INTROSPECTION:-false}
     ports:
       - '3000:3000'
     healthcheck:

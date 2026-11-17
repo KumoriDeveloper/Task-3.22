@@ -8,52 +8,106 @@
       name="description"
       content="Цифровая визитка backend-инженера: профиль, навыки, опыт работы и проекты."
     />
+    <meta name="theme-color" content="#e9dfca" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#101010" media="(prefers-color-scheme: dark)" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&family=Oswald:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
     <link
       rel="icon"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230b0f13'/%3E%3Ctext x='16' y='22' font-family='Georgia' font-size='16' fill='%237fe3b0' text-anchor='middle'%3EAC%3C/text%3E%3C/svg%3E"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23151515'/%3E%3Cpath d='M0 32 32 0v32z' fill='%23c72f24'/%3E%3Ctext x='16' y='21' font-family='Arial Narrow,Arial' font-size='13' font-weight='700' fill='%23f4ecdc' text-anchor='middle'%3EЦВ%3C/text%3E%3C/svg%3E"
     />
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
-    <main class="card" id="card" hidden>
-      <header class="hero">
-        <div class="avatar" id="avatar" aria-hidden="true">—</div>
-        <div class="hero-body">
-          <p class="eyebrow" id="location"></p>
-          <h1 id="name">—</h1>
-          <p class="headline" id="headline"></p>
-          <p class="description" id="description"></p>
-          <div class="links" id="links"></div>
+    <div class="page">
+      <main class="card" id="card" hidden>
+        <span class="spine" aria-hidden="true">Портфолио · 2026 · Цифровая визитка</span>
+
+        <header class="hero">
+          <div class="hero-shapes" aria-hidden="true">
+            <span class="shape shape-ring"></span>
+            <span class="shape shape-beam"></span>
+            <span class="shape shape-cross">+</span>
+          </div>
+
+          <div class="hero-topline">
+            <span class="stamp">ЦВ—01</span>
+            <span class="topline-text">Цифровая визитка / Digital business card</span>
+            <span class="topline-year">2026</span>
+          </div>
+
+          <div class="hero-body">
+            <div class="hero-identity">
+              <div class="avatar-block">
+                <div class="avatar" id="avatar" aria-hidden="true">—</div>
+                <span class="avatar-label">Портрет / 01</span>
+              </div>
+
+              <div class="identity">
+                <p class="eyebrow" id="location"></p>
+                <h1 id="name">—</h1>
+                <p class="headline" id="headline"></p>
+                <p class="description" id="description"></p>
+                <div class="links" id="links"></div>
+              </div>
+            </div>
+
+            <aside class="hero-aside" aria-label="О визитке">
+              <span class="status"><i aria-hidden="true"></i> Открыт к предложениям</span>
+              <p class="aside-kicker">Визитка<br />как плакат</p>
+              <p class="aside-text">
+                Профиль, навыки и проекты — в одном месте. Связаться можно через ссылки в шапке.
+              </p>
+              <span class="aside-stamp" aria-hidden="true">Собрано<br />в 2026</span>
+            </aside>
+          </div>
+        </header>
+
+        <div class="sections">
+          <section class="section" aria-labelledby="skills-title">
+            <div class="section-head">
+              <span class="index" aria-hidden="true">01</span>
+              <h2 id="skills-title">Навыки</h2>
+              <span class="rule" aria-hidden="true"></span>
+            </div>
+            <div class="skills" id="skills"></div>
+          </section>
+
+          <section class="section" aria-labelledby="experience-title">
+            <div class="section-head">
+              <span class="index" aria-hidden="true">02</span>
+              <h2 id="experience-title">Опыт работы</h2>
+              <span class="rule" aria-hidden="true"></span>
+            </div>
+            <div class="timeline" id="experience"></div>
+          </section>
+
+          <section class="section" aria-labelledby="projects-title">
+            <div class="section-head">
+              <span class="index" aria-hidden="true">03</span>
+              <h2 id="projects-title">Проекты</h2>
+              <span class="rule" aria-hidden="true"></span>
+            </div>
+            <div class="projects" id="projects"></div>
+          </section>
         </div>
-      </header>
 
-      <section class="section">
-        <h2><span class="index">01</span>Навыки</h2>
-        <div class="skills" id="skills"></div>
-      </section>
+        <footer class="footer">
+          <span>Цифровая визитка · 2026</span>
+          <span>Профиль, опыт и проекты</span>
+        </footer>
+      </main>
 
-      <section class="section">
-        <h2><span class="index">02</span>Опыт работы</h2>
-        <div class="timeline" id="experience"></div>
-      </section>
+      <div class="state" id="loading">
+        <span class="spinner" aria-hidden="true"></span>Загружаем визитку…
+      </div>
+      <p class="state error" id="error" role="alert" hidden></p>
+    </div>
 
-      <section class="section">
-        <h2><span class="index">03</span>Проекты</h2>
-        <div class="projects" id="projects"></div>
-      </section>
-
-      <footer class="footer">
-        <span>
-          Данные отдаёт GraphQL API —
-          <a href="/graphql" target="_blank" rel="noreferrer">Apollo Sandbox</a>
-        </span>
-        <a class="footer-admin" href="/admin/">Админ-панель →</a>
-      </footer>
-    </main>
-
-    <p class="state" id="loading">Загружаем визитку…</p>
-    <p class="state error" id="error" hidden></p>
-
-    <script src="/card.js" defer></script>
+    <script type="module" src="/card.js"></script>
   </body>
 </html>

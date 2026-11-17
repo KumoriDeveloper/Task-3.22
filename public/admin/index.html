@@ -5,55 +5,82 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Админ-панель · Цифровая визитка</title>
     <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#151515" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&family=Oswald:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
     <link
       rel="icon"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230b0f13'/%3E%3Ctext x='16' y='22' font-family='Georgia' font-size='16' fill='%237fe3b0' text-anchor='middle'%3EAC%3C/text%3E%3C/svg%3E"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23151515'/%3E%3Cpath d='M0 32 32 0v32z' fill='%23c72f24'/%3E%3Ctext x='16' y='21' font-family='Arial Narrow,Arial' font-size='13' font-weight='700' fill='%23f4ecdc' text-anchor='middle'%3EЦВ%3C/text%3E%3C/svg%3E"
     />
     <link rel="stylesheet" href="/admin/styles.css" />
   </head>
   <body>
     <section class="login" id="login-screen">
+      <div class="login-visual" aria-hidden="true">
+        <span class="login-mark">ЦВ</span>
+        <p class="login-visual-title">Цифровая<br />визитка<br />система</p>
+        <ul class="login-visual-list">
+          <li>Профиль и ссылки</li>
+          <li>Навыки и уровень</li>
+          <li>Опыт и проекты</li>
+        </ul>
+        <span class="login-visual-note">NestJS · Prisma · GraphQL</span>
+      </div>
+
       <form class="login-card" id="login-form">
-        <p class="eyebrow">Digital business card</p>
-        <h1>Вход в админ-панель</h1>
+        <p class="eyebrow">Администрирование</p>
+        <h1>Вход в панель</h1>
         <p class="muted">
           Учётная запись создаётся при старте приложения из переменных окружения
           <code>ADMIN_EMAIL</code> и <code>ADMIN_PASSWORD</code>.
         </p>
-        <label>Email<input id="login-email" type="email" autocomplete="username" required /></label>
         <label
-          >Пароль<input
-            id="login-password"
-            type="password"
-            autocomplete="current-password"
-            required
-        /></label>
-        <button class="btn primary" type="submit" id="login-submit">Войти</button>
-        <p class="error" id="login-error" hidden></p>
+          >Email
+          <input id="login-email" type="email" autocomplete="username" required />
+        </label>
+        <label
+          >Пароль
+          <input id="login-password" type="password" autocomplete="current-password" required />
+        </label>
+        <button class="btn primary block" type="submit" id="login-submit">Войти</button>
+        <p class="error" id="login-error" role="alert" hidden></p>
+        <a class="login-back" href="/">← На публичную визитку</a>
       </form>
     </section>
 
     <div class="shell" id="shell" hidden>
       <aside class="sidebar">
-        <div class="brand">визитка<span>/admin</span></div>
-        <nav id="nav">
+        <span class="sidebar-geo" aria-hidden="true"></span>
+        <div class="sidebar-top">
+          <a class="brand" href="/admin/">
+            <span class="brand-mark">ЦВ</span>
+            <span class="brand-text">визитка<em>/admin</em></span>
+          </a>
+          <p class="brand-caption">Управление контентом / 01—04</p>
+        </div>
+
+        <nav id="nav" aria-label="Разделы админ-панели">
           <button type="button" class="nav-btn is-active" data-action="panel" data-panel="profile">
-            Профиль
+            <span class="nav-index">01</span><span>Профиль</span>
           </button>
           <button type="button" class="nav-btn" data-action="panel" data-panel="skills">
-            Навыки
+            <span class="nav-index">02</span><span>Навыки</span>
           </button>
           <button type="button" class="nav-btn" data-action="panel" data-panel="experience">
-            Опыт работы
+            <span class="nav-index">03</span><span>Опыт работы</span>
           </button>
           <button type="button" class="nav-btn" data-action="panel" data-panel="projects">
-            Проекты
+            <span class="nav-index">04</span><span>Проекты</span>
           </button>
         </nav>
+
         <div class="sidebar-footer">
           <a href="/" target="_blank" rel="noreferrer">Открыть визитку ↗</a>
-          <a href="/graphql" target="_blank" rel="noreferrer">Apollo Sandbox ↗</a>
-          <button type="button" class="link-btn" data-action="logout">Выйти</button>
+          <button type="button" class="link-btn" data-action="logout">Выйти из аккаунта</button>
         </div>
       </aside>
 
@@ -63,12 +90,15 @@
             <p class="eyebrow">Администрирование</p>
             <h1 id="panel-title">Профиль</h1>
           </div>
-          <span class="status" id="status">Загрузка…</span>
+          <span class="status" id="status" role="status">Загрузка…</span>
         </header>
 
         <section class="panel is-active" data-panel-view="profile">
           <form class="card form" id="profile-form">
-            <h2>Основные данные</h2>
+            <div class="card-head">
+              <h2>Основные данные</h2>
+              <p class="card-hint">То, что видно в шапке визитки.</p>
+            </div>
             <div class="grid-2">
               <label>Имя и фамилия<input id="profile-name" maxlength="120" required /></label>
               <label>Заголовок<input id="profile-headline" maxlength="160" required /></label>
@@ -90,12 +120,15 @@
             </div>
             <div class="form-footer">
               <button class="btn primary" type="submit">Сохранить профиль</button>
-              <p class="error" id="profile-error" hidden></p>
+              <p class="error" id="profile-error" role="alert" hidden></p>
             </div>
           </form>
 
           <div class="card">
-            <h2>Профессиональные ссылки</h2>
+            <div class="card-head">
+              <h2>Профессиональные ссылки</h2>
+              <p class="card-hint">GitHub, LinkedIn, Telegram и другие контакты.</p>
+            </div>
             <ul class="rows" id="links-list"></ul>
             <form class="form inset" id="link-form">
               <div class="grid-3">
@@ -113,7 +146,7 @@
               </div>
               <div class="form-footer">
                 <button class="btn" type="submit">Добавить ссылку</button>
-                <p class="error" id="link-error" hidden></p>
+                <p class="error" id="link-error" role="alert" hidden></p>
               </div>
             </form>
           </div>
@@ -121,7 +154,10 @@
 
         <section class="panel" data-panel-view="skills">
           <form class="card form" id="skill-form">
-            <h2 id="skill-form-title">Новый навык</h2>
+            <div class="card-head">
+              <h2 id="skill-form-title">Новый навык</h2>
+              <p class="card-hint">Категория и уровень определяют вид навыка на визитке.</p>
+            </div>
             <input type="hidden" id="skill-id" />
             <div class="grid-4">
               <label>Название<input id="skill-name" maxlength="60" required /></label>
@@ -142,19 +178,25 @@
               >
                 Отменить
               </button>
-              <p class="error" id="skill-error" hidden></p>
+              <p class="error" id="skill-error" role="alert" hidden></p>
             </div>
           </form>
 
           <div class="card">
-            <h2>Навыки <span class="count" id="skills-count"></span></h2>
+            <div class="card-head">
+              <h2>Навыки <span class="count" id="skills-count"></span></h2>
+              <p class="card-hint">Список, сгруппированный по категориям на визитке.</p>
+            </div>
             <ul class="rows" id="skills-list"></ul>
           </div>
         </section>
 
         <section class="panel" data-panel-view="experience">
           <form class="card form" id="experience-form">
-            <h2 id="experience-form-title">Новая позиция</h2>
+            <div class="card-head">
+              <h2 id="experience-form-title">Новая позиция</h2>
+              <p class="card-hint">Пустая дата окончания означает текущую позицию.</p>
+            </div>
             <input type="hidden" id="experience-id" />
             <div class="grid-2">
               <label>Компания<input id="experience-company" maxlength="120" required /></label>
@@ -189,19 +231,25 @@
               >
                 Отменить
               </button>
-              <p class="error" id="experience-error" hidden></p>
+              <p class="error" id="experience-error" role="alert" hidden></p>
             </div>
           </form>
 
           <div class="card">
-            <h2>Опыт работы <span class="count" id="experience-count"></span></h2>
+            <div class="card-head">
+              <h2>Опыт работы <span class="count" id="experience-count"></span></h2>
+              <p class="card-hint">Порядок на визитке — от свежих позиций к старым.</p>
+            </div>
             <ul class="rows" id="experience-list"></ul>
           </div>
         </section>
 
         <section class="panel" data-panel-view="projects">
           <form class="card form" id="project-form">
-            <h2 id="project-form-title">Новый проект</h2>
+            <div class="card-head">
+              <h2 id="project-form-title">Новый проект</h2>
+              <p class="card-hint">Технологии выбираются из навыков этого профиля.</p>
+            </div>
             <input type="hidden" id="project-id" />
             <label>Название<input id="project-name" maxlength="120" required /></label>
             <label
@@ -233,19 +281,22 @@
               >
                 Отменить
               </button>
-              <p class="error" id="project-error" hidden></p>
+              <p class="error" id="project-error" role="alert" hidden></p>
             </div>
           </form>
 
           <div class="card">
-            <h2>Проекты <span class="count" id="projects-count"></span></h2>
+            <div class="card-head">
+              <h2>Проекты <span class="count" id="projects-count"></span></h2>
+              <p class="card-hint">Карточки проектов с технологиями и ссылками.</p>
+            </div>
             <ul class="rows" id="projects-list"></ul>
           </div>
         </section>
       </main>
     </div>
 
-    <div class="toast" id="toast" hidden></div>
-    <script src="/admin/admin.js" defer></script>
+    <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+    <script type="module" src="/admin/admin.js"></script>
   </body>
 </html>

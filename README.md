@@ -1,8 +1,8 @@
 # Цифровая визитка — backend на NestJS, Prisma и GraphQL
 
-Backend цифровой визитки: публичная страница-карточка, GraphQL API с Apollo Sandbox и
-админ-панель, через которую весь контент редактируется без пересборки и без доступа к БД.
-База данных автоматически приводится в актуальное состояние и заполняется при первом запуске.
+Backend цифровой визитки: публичная страница-карточка, GraphQL API и админ-панель, через
+которую весь контент редактируется без пересборки и без доступа к БД. База данных
+автоматически приводится в актуальное состояние и заполняется при первом запуске.
 
 **Стек:** TypeScript · Node.js · NestJS · Prisma · PostgreSQL · GraphQL (Apollo) · Docker · Git.
 
@@ -11,24 +11,28 @@ Backend цифровой визитки: публичная страница-к�
 ## 1. Быстрый старт
 
 ```bash
+cp .env.example .env         # обязательные значения: JWT_SECRET, ADMIN_EMAIL, ADMIN_PASSWORD
 docker compose up --build
 ```
 
 Одна команда поднимает PostgreSQL, применяет миграции и стартует API. Никаких ручных шагов
 с БД не требуется: схема создаётся миграциями, данные — сидером при старте приложения.
 
-| Что                   | Адрес                         |
-| --------------------- | ----------------------------- |
-| Публичная визитка     | http://localhost:3000/        |
-| GraphQL API + Sandbox | http://localhost:3000/graphql |
-| Админ-панель          | http://localhost:3000/admin/  |
-| Health check          | http://localhost:3000/health  |
-| PostgreSQL (снаружи)  | `localhost:5433`              |
+| Что                  | Адрес                         |
+| -------------------- | ----------------------------- |
+| Публичная визитка    | http://localhost:3000/        |
+| GraphQL API          | http://localhost:3000/graphql |
+| Админ-панель         | http://localhost:3000/admin/  |
+| Health check         | http://localhost:3000/health  |
+| PostgreSQL (снаружи) | `localhost:5433`              |
 
-Доступ в админ-панель по умолчанию: **`admin@example.com` / `admin12345`**.
-Учётная запись создаётся из переменных окружения (`ADMIN_EMAIL`, `ADMIN_PASSWORD`,
-`ADMIN_NAME`); значения по умолчанию предназначены только для локального запуска — для
-реального развёртывания задайте свои (см. раздел «Конфигурация»).
+Учётная запись администратора и пароль задаются **только через окружение** (`ADMIN_EMAIL`,
+`ADMIN_PASSWORD`, `ADMIN_NAME`). Значения из `.env.example` — локальная заготовка: смените
+пароль и `JWT_SECRET` перед реальным запуском. Публичная визитка не содержит ссылок на
+`/admin/` или `/graphql`, поэтому панель доступна только тем, кто знает адрес.
+
+Apollo Sandbox и GraphQL introspection по умолчанию выключены (в production) и включаются
+переменными `GRAPHQL_SANDBOX=true` / `GRAPHQL_INTROSPECTION=true` — только для разработки.
 
 Остановить и удалить данные: `docker compose down -v`.
 
@@ -36,7 +40,7 @@ docker compose up --build
 
 ```bash
 docker compose up -d db      # только PostgreSQL
-cp .env.example .env         # DATABASE_URL уже указывает на localhost:5433
+cp .env.example .env         # заполните ADMIN_EMAIL и ADMIN_PASSWORD
 npm ci
 npx prisma migrate deploy    # применить миграции
 npm run start:dev            # nest start --watch
@@ -44,7 +48,107 @@ npm run start:dev            # nest start --watch
 
 ---
 
-## 2. GraphQL API
+## 2. Деплой на Vercel
+
+Проект уже подготовлен к serverless-запуску: Nest-приложение экспортируется как Vercel
+Function, а статика (`public/`) раздаётся с CDN. Отдельная сборка фронтенда не нужна.
+
+### Что уже настроено
+
+| Файл                      | Назначение                                                                |
+| ------------------------- | ------------------------------------------------------------------------- |
+| `api/index.js`            | Vercel Function, которая подключает скомпилированный `dist/serverless.js` |
+| `src/serverless.ts`       | ленивый bootstrap Nest + кеширование приложения между тёплыми вызовами    |
+| `src/bootstrap.ts`        | единая фабрика приложения для Docker, Vercel и e2e-тестов                 |
+| `vercel.json`             | rewrites `/graphql` и `/health` на функцию, `public/` как output          |
+| `scripts/vercel-build.js` | `prisma generate` → `nest build` → `migrate deploy` → seed                |
+| `.vercelignore`           | не отправляет в сборку `.env`, `test`, `dist` и локальные артефакты       |
+
+`api/index.js` — обычный CommonJS-файл, который подключает `dist/serverless.js`. Поэтому
+декораторы и `emitDecoratorMetadata` компилируются `nest build`, а не esbuild на стороне
+Vercel: DI Nest продолжает работать без сюрпризов.
+
+### Порядок деплоя
+
+1. Создайте PostgreSQL с пулером подключений: Neon, Supabase, Railway или любой другой
+   провайдер. Для serverless берите **pooled** строку подключения, а не direct.
+2. Импортируйте репозиторий в Vercel. Framework определится как «Other», команды сборки
+   уже лежат в `vercel.json`.
+3. Добавьте переменные окружения для Production (и Preview, если нужна отдельная БД):
+
+   | Переменная              | Значение                                           |
+   | ----------------------- | -------------------------------------------------- |
+   | `DATABASE_URL`          | pooled-строка PostgreSQL                           |
+   | `JWT_SECRET`            | случайная строка не короче 16 символов             |
+   | `ADMIN_EMAIL`           | email администратора                               |
+   | `ADMIN_PASSWORD`        | пароль администратора                              |
+   | `ADMIN_NAME`            | отображаемое имя администратора                    |
+   | `JWT_EXPIRES_IN`        | `12h` (необязательно)                              |
+   | `SEED_PORTFOLIO`        | `false`, если контент уже заведён (необязательно)  |
+   | `GRAPHQL_SANDBOX`       | `false` (по умолчанию в production; необязательно) |
+   | `GRAPHQL_INTROSPECTION` | `false` (по умолчанию в production; необязательно) |
+   | `PRISMA_LOG_QUERIES`    | `false` (необязательно)                            |
+
+4. Нажмите Deploy. `scripts/vercel-build.js`:
+   - генерирует Prisma Client под runtime Vercel (`rhel-openssl-3.0.x` уже указан в схеме);
+   - собирает Nest в `dist/`;
+   - применяет миграции (`prisma migrate deploy`);
+   - создаёт/обновляет администратора и один раз заполняет карточку.
+
+   Повторный деплой безопасен: сидер не перезаписывает данные, изменённые через админку.
+
+5. Проверьте после деплоя: `/` — визитка, `/admin/` — панель (ссылки на неё нет на визитке),
+   `/health` — `{"status":"ok"}`, `/graphql` — API. Sandbox доступен только при
+   `GRAPHQL_SANDBOX=true`.
+
+### Preview и общие базы
+
+Preview-деплой по умолчанию использует те же переменные, что и Production, поэтому миграции
+и сид выполнятся и для превью. Если превью не должно трогать production-базу, задайте
+`VERCEL_SKIP_DB_SETUP=1` для Preview: сборка пропустит миграции и сид. Схему и данные тогда
+обновляйте вручную:
+
+```bash
+DATABASE_URL="postgresql://…" npm run db:deploy
+DATABASE_URL="postgresql://…" npm run db:seed
+```
+
+### Serverless-ограничения
+
+- **Соединения с БД.** Функции масштабируются горизонтально, поэтому используйте пулер
+  провайдера (Neon pooled URL, Supabase `?pgbouncer=true&connection_limit=1`). Прямое
+  подключение к PostgreSQL исчерпает лимит соединений при нагрузке.
+- **Статика.** `express.static` на Vercel игнорируется платформой; файлы из `public/`
+  раздаются CDN. В `src/serverless.ts` статика поэтому отключена, в Docker — включена.
+- **Лимиты функции.** В `vercel.json` задан `maxDuration` — 30 секунд. Память функции
+  настраивается в дашборде проекта (в `vercel.json` она больше не задаётся); значения по
+  умолчанию хватает: Prisma-запросы и DataLoader'ы укладываются с запасом.
+- **Холодный старт.** Приложение инициализируется при первом запросе и переиспользуется
+  тёплыми вызовами. На Vercel boot-сид отключён автоматически (`SEED_ON_BOOT=false`):
+  администратор и контент готовятся на этапе сборки. Если миграции и сид в сборке пропущены
+  (`VERCEL_SKIP_DB_SETUP=1`), задайте `SEED_ON_BOOT=true`, чтобы синхронизировать
+  администратора при первом запросе.
+
+Локальная проверка serverless-режима без деплоя:
+
+```bash
+npm run build
+node -e "const http=require('http'); const h=require('./dist/serverless').default; http.createServer(h).listen(3000)"
+```
+
+### Обновление схемы БД
+
+После изменения `prisma/schema.prisma` создайте миграцию локально и закоммитьте её:
+
+```bash
+npx prisma migrate dev --name describe_change
+```
+
+На Vercel она применится автоматически при следующем деплое.
+
+---
+
+## 3. GraphQL API
 
 Схема генерируется кодом (code-first), поэтому не может разойтись с моделями.
 Запросы — публичные, мутации — только с JWT администратора.
@@ -101,7 +205,7 @@ query {
 
 ```graphql
 mutation {
-  login(input: { email: "admin@example.com", password: "admin12345" }) {
+  login(input: { email: "ADMIN_EMAIL", password: "ADMIN_PASSWORD" }) {
     accessToken
     admin {
       email
@@ -143,7 +247,7 @@ GraphQL-ответ содержит `extensions.code`, соответствую�
 
 ---
 
-## 3. Архитектура и обоснование решений
+## 4. Архитектура и обоснование решений
 
 ### Слои и ответственность
 
@@ -241,6 +345,8 @@ Guard на классе, а не на каждом методе, выбран с
 Сидовые данные — один файл `src/database/portfolio.fixture.ts` (профиль, ссылки, навыки,
 опыт, проекты). Замените значения на свои или отредактируйте всё через админ-панель.
 Отключить сидирование контента: `SEED_PORTFOLIO=false` (администратор создаётся всегда).
+Полностью пропустить подготовку данных при старте: `SEED_ON_BOOT=false` (так делает
+serverless-вход на Vercel, где эту работу выполняет сборка).
 
 ### Конфигурация
 
@@ -248,17 +354,20 @@ Guard на классе, а не на каждом методе, выбран с
 (`src/config/env.validation.ts`): при ошибке приложение падает с понятным сообщением,
 а не с `undefined` в глубине Prisma.
 
-| Переменная           | Обязательна | По умолчанию        | Назначение                             |
-| -------------------- | ----------- | ------------------- | -------------------------------------- |
-| `DATABASE_URL`       | да          | —                   | Строка подключения PostgreSQL          |
-| `JWT_SECRET`         | да          | —                   | Ключ подписи JWT (≥ 16 символов)       |
-| `APP_PORT`           | нет         | `3000`              | HTTP-порт приложения                   |
-| `JWT_EXPIRES_IN`     | нет         | `12h`               | Время жизни токена                     |
-| `ADMIN_EMAIL`        | нет         | `admin@example.com` | Логин администратора                   |
-| `ADMIN_PASSWORD`     | нет         | `admin12345`        | Пароль администратора                  |
-| `ADMIN_NAME`         | нет         | `Portfolio Admin`   | Отображаемое имя администратора        |
-| `SEED_PORTFOLIO`     | нет         | `true`              | Заполнять ли карточку при пустой БД    |
-| `PRISMA_LOG_QUERIES` | нет         | `false`             | Логировать SQL (для проверки батчинга) |
+| Переменная              | Обязательна | По умолчанию                         | Назначение                                   |
+| ----------------------- | ----------- | ------------------------------------ | -------------------------------------------- |
+| `DATABASE_URL`          | да          | —                                    | Строка подключения PostgreSQL                |
+| `JWT_SECRET`            | да          | —                                    | Ключ подписи JWT (≥ 16 символов)             |
+| `ADMIN_EMAIL`           | да          | —                                    | Логин администратора                         |
+| `ADMIN_PASSWORD`        | да          | —                                    | Пароль администратора (≥ 8 символов)         |
+| `APP_PORT`              | нет         | `3000`                               | HTTP-порт приложения                         |
+| `JWT_EXPIRES_IN`        | нет         | `12h`                                | Время жизни токена                           |
+| `ADMIN_NAME`            | нет         | `Portfolio Admin`                    | Отображаемое имя администратора              |
+| `SEED_PORTFOLIO`        | нет         | `true`                               | Заполнять ли карточку при пустой БД          |
+| `SEED_ON_BOOT`          | нет         | `true`                               | Готовить данные при старте (Vercel: `false`) |
+| `GRAPHQL_SANDBOX`       | нет         | `true` вне production, иначе `false` | Отдавать Apollo Sandbox на `GET /graphql`    |
+| `GRAPHQL_INTROSPECTION` | нет         | как у `GRAPHQL_SANDBOX`              | Разрешать introspection GraphQL-схемы        |
+| `PRISMA_LOG_QUERIES`    | нет         | `false`                              | Логировать SQL (для проверки батчинга)       |
 
 Порт вынесен в `APP_PORT`, а не в распространённый `PORT`: переменная `PORT` часто
 выставляется окружением хоста/платформы (в т.ч. в `0`), и приложение не должно из-за этого
@@ -294,14 +403,16 @@ API ждёт `db` в состоянии `service_healthy`.
 
 ---
 
-## 4. Структура проекта
+## 5. Структура проекта
 
 ```
 prisma/
-  schema.prisma                  модель данных
+  schema.prisma                  модель данных + binaryTargets для Vercel
   migrations/                    версионированная схема БД
 src/
   main.ts                        bootstrap: создать приложение и слушать порт
+  bootstrap.ts                   единая фабрика Nest-приложения
+  serverless.ts                  Vercel Function: ленивый bootstrap + кеш инстанса
   app.setup.ts                   общая HTTP-обвязка (валидация, статика, Sandbox)
   app.module.ts                  сборка модулей и GraphQL
   config/env.validation.ts       валидация окружения
@@ -318,11 +429,21 @@ src/
   skills/                        навыки + админские мутации
   experiences/                   опыт работы + админские мутации
   projects/                      проекты + батчинг технологий
-  database/                      фикстура и идемпотентный сидер
-  health/                        healthcheck для Docker
+  database/
+    portfolio.fixture.ts         содержимое визитки по умолчанию
+    seed.ts                      идемпотентные syncAdminAccount и seedPortfolio
+    seed.service.ts              запуск сидера при boot длительного процесса
+    seed.cli.ts                  тот же сидер для Vercel build / db:seed
+  health/                        healthcheck для Docker и Vercel
+api/index.js                     Vercel Function entry point
+scripts/vercel-build.js          generate → build → migrate → seed
 public/
   index.html, styles.css, card.js      публичная визитка
-  admin/                               админ-панель (статические файлы)
+  shared/                              общие ES-модули (UI-хелперы и GraphQL-клиент)
+  admin/
+    index.html, styles.css, admin.js   админ-панель
+    documents.js                       GraphQL-документы
+    render.js                          разметка списков и форм
 test/
   profile.e2e-spec.ts            вложенный запрос профиля и батчинг SQL
   seeding.e2e-spec.ts            первичный сид, идемпотентность, env-настройки
@@ -330,15 +451,31 @@ test/
   utils/                         общий bootstrap приложения и подготовка схемы БД
 docker/entrypoint.sh             миграции + запуск
 Dockerfile, docker-compose.yml
+vercel.json, .vercelignore
 ```
 
 ---
 
-## 5. Админ-панель
+## 6. Админ-панель
 
-Отдельного фронтенд-сборщика нет: три статических файла, отдаваемых тем же Nest-приложением,
-работают с тем же GraphQL API. Это осознанный выбор — админка не тянет второй стек и сборку,
-а контракт API остаётся единственным источником истины.
+Отдельного фронтенд-сборщика нет: статические ES-модули, отдаваемые тем же Nest-приложением
+(или CDN на Vercel), работают с тем же GraphQL API. Это осознанный выбор — админка не тянет
+второй стек и сборку, а контракт API остаётся единственным источником истины.
+
+Публичная визитка не ссылается на админ-панель или GraphQL API: это внутренние инструменты,
+а не контент для посетителя. Панель открывается по прямому адресу `/admin/`, учётные данные
+приходят из `ADMIN_EMAIL` / `ADMIN_PASSWORD`, а страница закрыта авторизацией и помечена
+`noindex`.
+
+Публичная визитка и админка оформлены в конструктивистской традиции: бумажный фон, чёрные
+линейки и офсетные тени, сигнальный красный, крупная сжатая типографика и геометрические
+акценты. Композиция адаптируется к светлой и тёмной схемам; Oswald и Golos Text подключаются
+с Google Fonts, а при недоступности сети остаются системные фолбэки.
+
+Код админки разделён по ответственности: `documents.js` — GraphQL-документы, `render.js` —
+разметка списков, `admin.js` — состояние, формы и обработка событий. Общие хелперы escape,
+форматирования дат и GraphQL-клиент лежат в `public/shared/` и используются и визиткой, и
+админкой.
 
 Что можно делать:
 
@@ -353,7 +490,7 @@ Dockerfile, docker-compose.yml
 
 ---
 
-## 6. Тесты
+## 7. Тесты
 
 ```bash
 docker compose up -d db   # нужен только PostgreSQL
@@ -379,13 +516,18 @@ npm run test:e2e
   валидный токен открывает мутации; бизнес-ошибки приходят с кодами `CONFLICT`,
   `NOT_FOUND`, `BAD_REQUEST` (включая ошибку валидации входа).
 
-## 7. Проверки
+## 8. Проверки
 
 Выполнено вручную на запущенном приложении:
 
 - `npm run build` и `npx tsc --noEmit` — без ошибок;
+- `node scripts/vercel-build.js` — generate, build, `migrate deploy` и seed отрабатывают;
+- serverless entry (`require('./dist/serverless').default`) локально отвечает на `GET /health`,
+  `POST /graphql` и `GET /graphql` (Sandbox при `GRAPHQL_SANDBOX=true`); `api/index.js`
+  подключает тот же handler;
 - production-образ собран и запущен: entrypoint применил миграцию, на пустой БД отработал сидер,
-  `GET /health` → 200, Sandbox и GraphQL-запросы отвечают;
+  `GET /health` → 200, GraphQL-запросы отвечают, `GET /graphql` закрыт без флага Sandbox;
+- публичная страница не содержит ссылок на `/admin/` и `/graphql`;
 - повторный старт: «Portfolio already contains data, seeding skipped» (сид идемпотентен);
 - `docker compose config` валиден; связка API + PostgreSQL проверена запуском образа;
 - вложенный запрос из задания возвращает профиль, 14 навыков, 3 позиции, 4 проекта с технологиями;
@@ -397,7 +539,7 @@ npm run test:e2e
   (поля и чекбоксы технологий заполняются), удаление — проверено в браузере;
 - `npm run test:e2e` — 24 теста, 3 файла, все зелёные.
 
-## 8. Ограничения и возможные улучшения
+## 9. Ограничения и возможные улучшения
 
 - Администратор один и задаётся окружением: нет регистрации, ролей и смены пароля из UI.
 - Нет пагинации и полнотекстового поиска — данные визитки заведомо небольшие; при росте
@@ -407,4 +549,6 @@ npm run test:e2e
 - Покрыты API и сидер; отдельного unit-уровня для сервисов нет — при росте правил его
   стоит добавить.
 - Нет подписок/realtime и загрузки файлов (аватар задаётся URL).
-- `introspection` включён намеренно: это демонстрационное API, а Sandbox — часть задания.
+- `introspection` и Sandbox по умолчанию выключены в production: схема и живой API не
+  рекламируются посетителю. Для локальной отладки включите `GRAPHQL_SANDBOX=true` и
+  `GRAPHQL_INTROSPECTION=true`.
