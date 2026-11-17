@@ -1,14 +1,11 @@
-import { Field, ID, InputType, Int, PartialType } from '@nestjs/graphql';
+import { Field, ID, InputType, PartialType } from '@nestjs/graphql';
 import {
   IsArray,
-  IsInt,
   IsOptional,
   IsString,
   IsUrl,
   Length,
-  Max,
   MaxLength,
-  Min,
   ValidateIf,
 } from 'class-validator';
 
@@ -47,13 +44,6 @@ export class CreateProjectInput {
   @IsArray()
   @IsString({ each: true })
   technologyIds?: string[];
-
-  @Field(() => Int, { nullable: true })
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  @Max(999)
-  sortOrder?: number;
 }
 
 @InputType()

@@ -1,19 +1,37 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { Prisma, PrismaClient } from '@prisma/client';
 
+/**
+ * Typing the client with `log` as a plain list keeps `$on('query')` available, so the
+ * e2e test can count SQL statements without reaching into Prisma internals.
+ */
+type PrismaLogOptions = { log: Prisma.LogDefinition[] };
+
 @Injectable()
-export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
+export class PrismaService
+  extends PrismaClient<PrismaLogOptions>
+  implements OnModuleInit, OnModuleDestroy
+{
   private readonly logger = new Logger(PrismaService.name);
 
   constructor() {
-    // PRISMA_LOG_QUERIES=true prints every SQL statement — handy to verify that
-    // nested GraphQL selections are batched instead of causing N+1 queries.
-    const log: Prisma.LogLevel[] = ['warn', 'error'];
-    if (process.env.PRISMA_LOG_QUERIES === 'true') {
-      log.push('query');
-    }
+    super({
+      log: [
+        { emit: 'event', level: 'warn' },
+        { emit: 'event', level: 'error' },
+        { emit: 'event', level: 'query' },
+      ],
+    });
 
-    super({ log });
+    // One logging channel: Prisma events go through the Nest logger, so `logger: false`
+    // in tests silences the database too.
+    this.$on('warn', (event) => this.logger.warn(event.message));
+    this.$on('error', (event) => this.logger.error(event.message));
+
+    // Query events are always available for tests; printing them is opt-in.
+    if (process.env.PRISMA_LOG_QUERIES === 'true') {
+      this.$on('query', (event) => this.logger.debug(event.query));
+    }
   }
 
   async onModuleInit(): Promise<void> {

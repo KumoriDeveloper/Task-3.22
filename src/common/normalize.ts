@@ -8,6 +8,14 @@ export function nullable(value: string | null | undefined): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
+/**
+ * Patch semantics for nullable columns: `undefined` leaves the value untouched,
+ * an empty string clears it to NULL. Prisma understands both values natively.
+ */
+export function nullablePatch(value: string | null | undefined): string | null | undefined {
+  return value === undefined ? undefined : nullable(value);
+}
+
 /** Trims, drops empty entries and de-duplicates a list of strings. */
 export function stringList(values: readonly string[] | null | undefined): string[] {
   if (!values) {

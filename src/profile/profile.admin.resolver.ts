@@ -1,7 +1,7 @@
 import { Args, ID, Mutation, Resolver } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CreateSocialLinkInput, UpdateSocialLinkInput } from '../graphql/inputs/social-link.input';
+import { CreateSocialLinkInput } from '../graphql/inputs/social-link.input';
 import { UpdateProfileInput } from '../graphql/inputs/profile.input';
 import { ProfileModel } from '../graphql/models/profile.model';
 import { SocialLinkModel } from '../graphql/models/social-link.model';
@@ -33,14 +33,6 @@ export class ProfileAdminResolver {
     @Args('input', { type: () => CreateSocialLinkInput }) input: CreateSocialLinkInput,
   ): Promise<SocialLinkModel> {
     return this.socialLinksService.create(input);
-  }
-
-  @Mutation(() => SocialLinkModel, { description: 'Updates an existing professional link' })
-  updateSocialLink(
-    @Args('id', { type: () => ID }) id: string,
-    @Args('input', { type: () => UpdateSocialLinkInput }) input: UpdateSocialLinkInput,
-  ): Promise<SocialLinkModel> {
-    return this.socialLinksService.update(id, input);
   }
 
   @Mutation(() => Boolean, { description: 'Removes a professional link' })

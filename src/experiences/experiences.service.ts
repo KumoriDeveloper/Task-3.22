@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { dateOnly, nullable, stringList } from '../common/normalize';
+import { dateOnly, nullable, nullablePatch, stringList } from '../common/normalize';
 import { CreateExperienceInput, UpdateExperienceInput } from '../graphql/inputs/experience.input';
 import { ExperienceModel } from '../graphql/models/experience.model';
 import { PrismaService } from '../prisma/prisma.service';
@@ -11,15 +11,6 @@ export class ExperiencesService {
     private readonly prisma: PrismaService,
     private readonly profileService: ProfileService,
   ) {}
-
-  async list(): Promise<ExperienceModel[]> {
-    const profileId = await this.profileService.getProfileId();
-
-    return this.prisma.experience.findMany({
-      where: { profileId },
-      orderBy: [{ startDate: 'desc' }, { sortOrder: 'asc' }],
-    });
-  }
 
   async create(input: CreateExperienceInput): Promise<ExperienceModel> {
     const profileId = await this.profileService.getProfileId();
@@ -38,7 +29,6 @@ export class ExperiencesService {
         location: nullable(input.location),
         summary: nullable(input.summary),
         achievements: stringList(input.achievements),
-        sortOrder: input.sortOrder ?? 0,
       },
     });
   }
@@ -66,10 +56,9 @@ export class ExperiencesService {
         position: input.position?.trim(),
         startDate,
         endDate,
-        location: input.location !== undefined ? nullable(input.location) : undefined,
-        summary: input.summary !== undefined ? nullable(input.summary) : undefined,
-        achievements: input.achievements !== undefined ? stringList(input.achievements) : undefined,
-        sortOrder: input.sortOrder,
+        location: nullablePatch(input.location),
+        summary: nullablePatch(input.summary),
+        achievements: input.achievements ? stringList(input.achievements) : undefined,
       },
     });
   }

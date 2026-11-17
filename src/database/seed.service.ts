@@ -1,5 +1,4 @@
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service';
 import { PORTFOLIO_FIXTURE } from './portfolio.fixture';
@@ -22,15 +21,14 @@ const SEED_LOCK_KEY = 8419271;
 export class SeedService implements OnApplicationBootstrap {
   private readonly logger = new Logger(SeedService.name);
 
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly config: ConfigService,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async onApplicationBootstrap(): Promise<void> {
     await this.ensureAdminAccount();
 
-    if (this.config.get<string>('SEED_PORTFOLIO') === 'false') {
+    // Read at bootstrap rather than through ConfigService: the seeder is driven by the
+    // process environment, and this keeps it usable in tests that boot twice.
+    if (process.env.SEED_PORTFOLIO === 'false') {
       this.logger.warn('SEED_PORTFOLIO=false — portfolio content was not seeded');
       return;
     }
@@ -39,31 +37,32 @@ export class SeedService implements OnApplicationBootstrap {
   }
 
   private async ensureAdminAccount(): Promise<void> {
-    const email = (this.config.get<string>('ADMIN_EMAIL') ?? 'admin@example.com')
-      .trim()
-      .toLowerCase();
-    const password = this.config.get<string>('ADMIN_PASSWORD') ?? 'admin12345';
-    const name = this.config.get<string>('ADMIN_NAME') ?? 'Portfolio Admin';
+    const email = (process.env.ADMIN_EMAIL ?? 'admin@example.com').trim().toLowerCase();
+    const password = process.env.ADMIN_PASSWORD ?? 'admin12345';
+    const name = process.env.ADMIN_NAME ?? 'Portfolio Admin';
 
-    const passwordHash = await bcrypt.hash(password, 10);
     const existing = await this.prisma.adminUser.findUnique({ where: { email } });
 
     if (!existing) {
-      await this.prisma.adminUser.create({ data: { email, name, passwordHash } });
+      await this.prisma.adminUser.create({
+        data: { email, name, passwordHash: await bcrypt.hash(password, 10) },
+      });
       this.logger.log(`Admin account ${email} created`);
       return;
     }
 
     const upToDate =
-      (await bcrypt.compare(password, existing.passwordHash)) && existing.name === name;
+      existing.name === name && (await bcrypt.compare(password, existing.passwordHash));
 
-    if (!upToDate) {
-      await this.prisma.adminUser.update({
-        where: { id: existing.id },
-        data: { passwordHash, name },
-      });
-      this.logger.log(`Admin account ${email} synchronised with environment configuration`);
+    if (upToDate) {
+      return;
     }
+
+    await this.prisma.adminUser.update({
+      where: { id: existing.id },
+      data: { name, passwordHash: await bcrypt.hash(password, 10) },
+    });
+    this.logger.log(`Admin account ${email} synchronised with environment configuration`);
   }
 
   private async seedPortfolio(): Promise<void> {
@@ -117,17 +116,11 @@ export class SeedService implements OnApplicationBootstrap {
               })),
             },
           },
-          select: { id: true },
+          // Reading the created skills back in the same statement avoids a second query.
+          select: { id: true, skills: { select: { id: true, name: true } } },
         });
 
-        const skillIdsByName = new Map(
-          (
-            await tx.skill.findMany({
-              where: { profileId: created.id },
-              select: { id: true, name: true },
-            })
-          ).map((skill) => [skill.name, skill.id]),
-        );
+        const skillIdsByName = new Map(created.skills.map((skill) => [skill.name, skill.id]));
 
         for (const project of projects) {
           const technologyIds = project.technologies.map((name) => {

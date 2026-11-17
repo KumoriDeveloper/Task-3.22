@@ -1,15 +1,5 @@
-import { Field, InputType, Int, PartialType } from '@nestjs/graphql';
-import {
-  IsArray,
-  IsDate,
-  IsInt,
-  IsOptional,
-  IsString,
-  Length,
-  Max,
-  MaxLength,
-  Min,
-} from 'class-validator';
+import { Field, InputType, PartialType } from '@nestjs/graphql';
+import { IsArray, IsDate, IsOptional, IsString, Length, MaxLength } from 'class-validator';
 
 @InputType()
 export class CreateExperienceInput {
@@ -53,13 +43,6 @@ export class CreateExperienceInput {
   @IsString({ each: true })
   @MaxLength(300, { each: true })
   achievements?: string[];
-
-  @Field(() => Int, { nullable: true })
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  @Max(999)
-  sortOrder?: number;
 }
 
 @InputType()

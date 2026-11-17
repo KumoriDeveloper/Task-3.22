@@ -1,16 +1,6 @@
-import { Field, InputType, Int, PartialType } from '@nestjs/graphql';
+import { Field, InputType } from '@nestjs/graphql';
+import { IsEnum, IsString, IsUrl, Length, MaxLength } from 'class-validator';
 import { LinkKind } from '../enums';
-import {
-  IsEnum,
-  IsInt,
-  IsOptional,
-  IsString,
-  IsUrl,
-  Length,
-  Max,
-  MaxLength,
-  Min,
-} from 'class-validator';
 
 @InputType()
 export class CreateSocialLinkInput {
@@ -27,14 +17,4 @@ export class CreateSocialLinkInput {
   @Field(() => LinkKind)
   @IsEnum(LinkKind)
   kind!: LinkKind;
-
-  @Field(() => Int, { nullable: true })
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  @Max(999)
-  sortOrder?: number;
 }
-
-@InputType()
-export class UpdateSocialLinkInput extends PartialType(CreateSocialLinkInput) {}

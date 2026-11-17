@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { nullable } from '../common/normalize';
+import { nullable, nullablePatch } from '../common/normalize';
 import { CreateProjectInput, UpdateProjectInput } from '../graphql/inputs/project.input';
 import { ProjectModel } from '../graphql/models/project.model';
 import { PrismaService } from '../prisma/prisma.service';
@@ -12,15 +12,6 @@ export class ProjectsService {
     private readonly profileService: ProfileService,
   ) {}
 
-  async list(): Promise<ProjectModel[]> {
-    const profileId = await this.profileService.getProfileId();
-
-    return this.prisma.project.findMany({
-      where: { profileId },
-      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
-    });
-  }
-
   async create(input: CreateProjectInput): Promise<ProjectModel> {
     const profileId = await this.profileService.getProfileId();
     const technologyIds = await this.resolveTechnologyIds(input.technologyIds ?? [], profileId);
@@ -32,7 +23,6 @@ export class ProjectsService {
         description: nullable(input.description),
         url: nullable(input.url),
         repositoryUrl: nullable(input.repositoryUrl),
-        sortOrder: input.sortOrder ?? 0,
         technologies: technologyIds.length
           ? { connect: technologyIds.map((id) => ({ id })) }
           : undefined,
@@ -52,11 +42,9 @@ export class ProjectsService {
       where: { id: project.id },
       data: {
         name: input.name?.trim(),
-        description: input.description !== undefined ? nullable(input.description) : undefined,
-        url: input.url !== undefined ? nullable(input.url) : undefined,
-        repositoryUrl:
-          input.repositoryUrl !== undefined ? nullable(input.repositoryUrl) : undefined,
-        sortOrder: input.sortOrder,
+        description: nullablePatch(input.description),
+        url: nullablePatch(input.url),
+        repositoryUrl: nullablePatch(input.repositoryUrl),
         technologies:
           technologyIds !== undefined
             ? { set: technologyIds.map((skillId) => ({ id: skillId })) }
