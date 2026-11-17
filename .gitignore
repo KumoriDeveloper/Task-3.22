@@ -4,10 +4,11 @@ coverage/
 *.tsbuildinfo
 *.log
 
-# local environment
+# local environment and Vercel project link
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
+.vercel
 
 # editors / OS
 .idea/

@@ -7,10 +7,15 @@ import { renderSandboxPage } from './graphql/sandbox.page';
 
 export interface ConfigureAppOptions {
   /**
-   * Vercel serves `public/` from its CDN and ignores Express static middleware, so the
-   * serverless entry point turns this off. Local/Docker runs keep it on.
+   * The public card lives in `public/` and is what a visitor should see.
+   * Vercel serves that directory from its CDN, so the serverless entry turns this off.
    */
-  serveStatic?: boolean;
+  servePublic?: boolean;
+  /**
+   * The admin UI is not part of `public/`. Both Docker and Vercel serve it from the
+   * application, and only at `/admin`, which the card never links to.
+   */
+  serveAdmin?: boolean;
 }
 
 /**
@@ -20,16 +25,40 @@ export interface ConfigureAppOptions {
  */
 export function configureApp(
   app: NestExpressApplication,
-  { serveStatic = true }: ConfigureAppOptions = {},
+  { servePublic = true, serveAdmin = true }: ConfigureAppOptions = {},
 ): void {
+  const http = app.getHttpAdapter().getInstance();
+
   // Express advertises its stack by default; the API does not need to.
-  app.getHttpAdapter().getInstance().disable('x-powered-by');
+  http.disable('x-powered-by');
+
+  http.use((request: Request, response: Response, next: NextFunction) => {
+    response.setHeader('X-Content-Type-Options', 'nosniff');
+    response.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    response.setHeader('X-Frame-Options', 'DENY');
+
+    const hidden =
+      request.path === '/admin' ||
+      request.path.startsWith('/admin/') ||
+      request.path === '/graphql' ||
+      request.path.startsWith('/graphql/');
+
+    if (hidden) {
+      response.setHeader('X-Robots-Tag', 'noindex, nofollow');
+      response.setHeader('Cache-Control', 'no-store');
+    }
+
+    next();
+  });
 
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
 
-  if (serveStatic) {
-    // Static frontends: the public card at "/", the admin panel at "/admin/".
+  if (servePublic) {
     app.useStaticAssets(join(process.cwd(), 'public'));
+  }
+
+  if (serveAdmin) {
+    app.useStaticAssets(join(process.cwd(), 'admin-ui'), { prefix: '/admin' });
   }
 
   // GET /graphql renders Apollo Sandbox only when explicitly enabled (and by default

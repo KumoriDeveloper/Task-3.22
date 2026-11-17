@@ -26,6 +26,8 @@ export type AdminSyncStatus = 'created' | 'updated' | 'unchanged';
 export interface AdminSyncResult {
   status: AdminSyncStatus;
   email: string;
+  /** Accounts whose email is no longer the one configured in the environment. */
+  removed: number;
 }
 
 const BCRYPT_COST = 10;
@@ -62,25 +64,34 @@ export async function syncAdminAccount(
       },
     });
 
-    return { status: 'created', email: config.email };
+    return finish(prisma, config.email, 'created');
   }
 
   const upToDate =
     existing.name === config.name && (await bcrypt.compare(config.password, existing.passwordHash));
 
-  if (upToDate) {
-    return { status: 'unchanged', email: config.email };
+  if (!upToDate) {
+    await prisma.adminUser.update({
+      where: { id: existing.id },
+      data: {
+        name: config.name,
+        passwordHash: await bcrypt.hash(config.password, BCRYPT_COST),
+      },
+    });
   }
 
-  await prisma.adminUser.update({
-    where: { id: existing.id },
-    data: {
-      name: config.name,
-      passwordHash: await bcrypt.hash(config.password, BCRYPT_COST),
-    },
-  });
+  return finish(prisma, config.email, upToDate ? 'unchanged' : 'updated');
+}
 
-  return { status: 'updated', email: config.email };
+/** The environment names the only admin. Any other account stops working. */
+async function finish(
+  prisma: PrismaClient,
+  email: string,
+  status: AdminSyncStatus,
+): Promise<AdminSyncResult> {
+  const removed = await prisma.adminUser.deleteMany({ where: { email: { not: email } } });
+
+  return { status, email, removed: removed.count };
 }
 
 /** Seeds the card exactly once. Returns true when this call created the content. */

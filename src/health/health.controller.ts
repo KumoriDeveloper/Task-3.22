@@ -10,21 +10,13 @@ export class HealthController {
   constructor(private readonly prisma: PrismaService) {}
 
   @Get()
-  async check(): Promise<{ status: string; database: string; uptimeSeconds: number }> {
+  async check(): Promise<{ status: string }> {
     const databaseUp = await this.prisma.isHealthy();
 
     if (!databaseUp) {
-      throw new ServiceUnavailableException({
-        status: 'degraded',
-        database: 'down',
-        uptimeSeconds: Math.round(process.uptime()),
-      });
+      throw new ServiceUnavailableException('Service unavailable');
     }
 
-    return {
-      status: 'ok',
-      database: 'up',
-      uptimeSeconds: Math.round(process.uptime()),
-    };
+    return { status: 'ok' };
   }
 }

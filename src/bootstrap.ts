@@ -21,7 +21,10 @@ export async function createApplication(
 ): Promise<NestExpressApplication> {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
-  configureApp(app, { serveStatic: options.serveStatic });
+  configureApp(app, {
+    servePublic: options.servePublic,
+    serveAdmin: options.serveAdmin,
+  });
 
   if (options.shutdownHooks) {
     app.enableShutdownHooks();

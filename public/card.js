@@ -16,23 +16,19 @@ const PROFILE_QUERY = `
       name
       headline
       description
-      email
       location
       avatarUrl
       links {
-        id
         label
         url
         kind
       }
       skills {
-        id
         name
         category
         level
       }
       experiences {
-        id
         company
         position
         startDate
@@ -42,13 +38,11 @@ const PROFILE_QUERY = `
         achievements
       }
       projects {
-        id
         name
         description
         url
         repositoryUrl
         technologies {
-          id
           name
         }
       }
@@ -213,7 +207,7 @@ async function start() {
     const data = await graphqlRequest(PROFILE_QUERY);
 
     if (!data?.profile) {
-      throw new Error('Профиль ещё не заполнен. Откройте /admin/ и добавьте данные.');
+      throw new Error('Профиль ещё не заполнен.');
     }
 
     renderProfile(data.profile);

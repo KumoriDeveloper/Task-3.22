@@ -19,6 +19,10 @@ async function main(): Promise<void> {
     const adminEmail = adminAccountFromEnv().email;
     console.info(`[seed] admin ${adminEmail}: ${admin.status}`);
 
+    if (admin.removed > 0) {
+      console.info(`[seed] removed ${admin.removed} admin account(s) not listed in ADMIN_EMAIL`);
+    }
+
     if (process.env.SEED_PORTFOLIO === 'false') {
       console.info('[seed] SEED_PORTFOLIO=false — portfolio content skipped');
       return;

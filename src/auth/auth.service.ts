@@ -6,6 +6,12 @@ import { AdminModel } from '../graphql/models/admin.model';
 import { AuthPayloadModel } from '../graphql/models/auth-payload.model';
 import { PrismaService } from '../prisma/prisma.service';
 
+/**
+ * bcrypt hash of a throwaway string. Compared when the email is unknown so the
+ * response time does not reveal whether an account exists.
+ */
+const DUMMY_PASSWORD_HASH = '$2b$10$3ZS8ew96OulL9if8b8LvSedSMmFHYNr1rb1JBvJmBrnyczZOr/xLG';
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -18,9 +24,10 @@ export class AuthService {
       where: { email: email.trim().toLowerCase() },
     });
 
-    // bcrypt.compare runs only when the account exists, but both branches return the
-    // same generic error so the endpoint does not reveal which emails are registered.
-    const passwordMatches = admin ? await bcrypt.compare(password, admin.passwordHash) : false;
+    const passwordMatches = await bcrypt.compare(
+      password,
+      admin?.passwordHash ?? DUMMY_PASSWORD_HASH,
+    );
 
     if (!admin || !passwordMatches) {
       throw new UnauthorizedException('Invalid email or password');

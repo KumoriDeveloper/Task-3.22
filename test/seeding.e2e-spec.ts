@@ -65,6 +65,30 @@ describe('database seeding (e2e)', () => {
     await second.close();
   });
 
+  it('drops admin accounts that are not the one named in the environment', async () => {
+    await resetDatabase();
+
+    const first = await createTestApp();
+    const prisma = first.get(PrismaService);
+    await prisma.adminUser.create({
+      data: {
+        email: 'old-admin@e2e.test',
+        name: 'Old Admin',
+        passwordHash: await bcrypt.hash('old-admin-password', 10),
+      },
+    });
+    expect(await prisma.adminUser.count()).toBe(2);
+    await first.close();
+
+    const second = await createTestApp();
+    const emails = (
+      await second.get(PrismaService).adminUser.findMany({ select: { email: true } })
+    ).map((account) => account.email);
+
+    expect(emails).toEqual([TEST_ADMIN.email]);
+    await second.close();
+  });
+
   it('synchronises the admin password with the environment', async () => {
     await resetDatabase();
 

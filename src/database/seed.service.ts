@@ -32,6 +32,10 @@ export class SeedService implements OnApplicationBootstrap {
       this.logger.log(`Admin account ${admin.email} synchronised with environment configuration`);
     }
 
+    if (admin.removed > 0) {
+      this.logger.log(`Removed ${admin.removed} admin account(s) that do not match ADMIN_EMAIL`);
+    }
+
     // Read at bootstrap rather than through ConfigService: the seeder is driven by the
     // process environment, and this keeps it usable in tests that boot twice.
     if (process.env.SEED_PORTFOLIO === 'false') {

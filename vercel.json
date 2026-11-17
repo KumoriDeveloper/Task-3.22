@@ -9,6 +9,7 @@
       "maxDuration": 30,
       "includeFiles": [
         "dist/**",
+        "admin-ui/**",
         "prisma/schema.prisma",
         "node_modules/.prisma/client/**",
         "node_modules/@prisma/client/**"
@@ -19,11 +20,40 @@
     { "source": "/graphql", "destination": "/api" },
     { "source": "/graphql/", "destination": "/api" },
     { "source": "/health", "destination": "/api" },
-    { "source": "/health/", "destination": "/api" }
+    { "source": "/health/", "destination": "/api" },
+    { "source": "/admin", "destination": "/api" },
+    { "source": "/admin/", "destination": "/api" },
+    { "source": "/admin/:path*", "destination": "/api" }
   ],
   "headers": [
     {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+        { "key": "X-Frame-Options", "value": "DENY" }
+      ]
+    },
+    {
+      "source": "/admin",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow" },
+        { "key": "Cache-Control", "value": "no-store" }
+      ]
+    },
+    {
       "source": "/admin/:path*",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow" },
+        { "key": "Cache-Control", "value": "no-store" }
+      ]
+    },
+    {
+      "source": "/graphql",
+      "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
+    },
+    {
+      "source": "/graphql/:path*",
       "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
     }
   ]

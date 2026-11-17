@@ -7,6 +7,20 @@ import { Prisma, PrismaClient } from '@prisma/client';
  */
 type PrismaLogOptions = { log: Prisma.LogDefinition[] };
 
+/**
+ * A serverless instance must not open a pool sized for a long-running server.
+ * The caller's URL wins when it already names a limit (Neon and Supabase poolers).
+ */
+function serverlessDatabaseUrl(): string | undefined {
+  const url = process.env.DATABASE_URL;
+
+  if (!url || process.env.VERCEL !== '1' || /[?&]connection_limit=/.test(url)) {
+    return undefined;
+  }
+
+  return `${url}${url.includes('?') ? '&' : '?'}connection_limit=1`;
+}
+
 @Injectable()
 export class PrismaService
   extends PrismaClient<PrismaLogOptions>
@@ -15,7 +29,10 @@ export class PrismaService
   private readonly logger = new Logger(PrismaService.name);
 
   constructor() {
+    const databaseUrl = serverlessDatabaseUrl();
+
     super({
+      ...(databaseUrl ? { datasources: { db: { url: databaseUrl } } } : {}),
       log: [
         { emit: 'event', level: 'warn' },
         { emit: 'event', level: 'error' },
