@@ -17,6 +17,7 @@
  * Steps 3-4 are skipped when VERCEL_SKIP_DB_SETUP=1, which is useful for preview
  * deployments that share the production database.
  */
+const { cpSync } = require('node:fs');
 const { execFileSync } = require('node:child_process');
 
 function run(command, args) {
@@ -26,6 +27,9 @@ function run(command, args) {
 
 run('npx', ['prisma', 'generate']);
 run('npm', ['run', 'build']);
+
+cpSync('admin-ui', 'public/admin', { recursive: true });
+console.log('[vercel] admin UI copied to public/admin');
 
 if (process.env.VERCEL_SKIP_DB_SETUP === '1') {
   console.log('\n[vercel] VERCEL_SKIP_DB_SETUP=1 — migrations and seed skipped');

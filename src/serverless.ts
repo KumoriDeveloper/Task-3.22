@@ -54,7 +54,9 @@ function restoreIncomingPath(request: IncomingMessage): void {
       continue;
     }
 
-    request.url = value.startsWith('http') ? new URL(value).pathname + new URL(value).search : value;
+    request.url = value.startsWith('http')
+      ? new URL(value).pathname + new URL(value).search
+      : value;
     return;
   }
 }
@@ -62,7 +64,7 @@ function restoreIncomingPath(request: IncomingMessage): void {
 async function createServer(): Promise<RequestListener> {
   const app: NestExpressApplication = await createApplication({
     servePublic: false,
-    serveAdmin: true,
+    serveAdmin: false,
   });
   await app.init();
 

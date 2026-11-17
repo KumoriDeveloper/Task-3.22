@@ -7,7 +7,7 @@
   "functions": {
     "api/index.js": {
       "maxDuration": 30,
-      "includeFiles": "{dist/**,admin-ui/**,prisma/schema.prisma,node_modules/.prisma/client/**,node_modules/@prisma/client/**}"
+      "includeFiles": "{dist/**,prisma/schema.prisma,node_modules/.prisma/client/**,node_modules/@prisma/client/**}"
     }
   },
   "rewrites": [
