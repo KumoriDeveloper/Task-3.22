@@ -1,0 +1,142 @@
+// Prisma schema for the digital business card.
+//
+// Domain notes:
+//  - The card describes a single person, so `Profile` is a singleton aggregate root.
+//  - Skills are owned by the profile (1-n) because they belong to that person's skillset.
+//  - Projects reference skills through a many-to-many relation: a project "uses" the
+//    technologies that are listed in the profile skillset. This relation is what makes
+//    DataLoader batching meaningful (see src/graphql/loaders).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum SkillCategory {
+  BACKEND
+  FRONTEND
+  DATABASE
+  DEVOPS
+  TOOLS
+  SOFT_SKILLS
+}
+
+enum SkillLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  EXPERT
+}
+
+enum LinkKind {
+  GITHUB
+  LINKEDIN
+  WEBSITE
+  TELEGRAM
+  EMAIL
+  OTHER
+}
+
+/// Aggregate root: the person the card belongs to.
+model Profile {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String
+  headline    String
+  description String
+  email       String
+  location    String?
+  avatarUrl   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  links       SocialLink[]
+  skills      Skill[]
+  experiences Experience[]
+  projects    Project[]
+}
+
+/// External professional resources (GitHub, LinkedIn, website, ...).
+model SocialLink {
+  id        String   @id @default(uuid()) @db.Uuid
+  label     String
+  url       String
+  kind      LinkKind @default(OTHER)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  profileId String  @db.Uuid
+  profile   Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, url])
+  @@index([profileId])
+}
+
+model Skill {
+  id        String        @id @default(uuid()) @db.Uuid
+  name      String
+  category  SkillCategory @default(BACKEND)
+  level     SkillLevel    @default(INTERMEDIATE)
+  sortOrder Int           @default(0)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  profileId String  @db.Uuid
+  profile   Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  projects Project[] @relation("ProjectTechnologies")
+
+  @@unique([profileId, name])
+  @@index([profileId])
+}
+
+model Experience {
+  id           String    @id @default(uuid()) @db.Uuid
+  company      String
+  position     String
+  startDate    DateTime  @db.Date
+  /// null means "current position"
+  endDate      DateTime? @db.Date
+  location     String?
+  summary      String?
+  achievements String[]  @default([])
+  sortOrder    Int       @default(0)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  profileId String  @db.Uuid
+  profile   Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId])
+}
+
+model Project {
+  id            String   @id @default(uuid()) @db.Uuid
+  name          String
+  description   String?
+  url           String?
+  repositoryUrl String?
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  profileId String  @db.Uuid
+  profile   Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  technologies Skill[] @relation("ProjectTechnologies")
+
+  @@index([profileId])
+}
+
+/// Back-office account used by the admin panel. Passwords are stored as bcrypt hashes.
+model AdminUser {
+  id           String   @id @default(uuid()) @db.Uuid
+  email        String   @unique
+  name         String
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
