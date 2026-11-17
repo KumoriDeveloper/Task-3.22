@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Админ-панель · Цифровая визитка</title>
+    <meta name="robots" content="noindex, nofollow" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230b0f13'/%3E%3Ctext x='16' y='22' font-family='Georgia' font-size='16' fill='%237fe3b0' text-anchor='middle'%3EAC%3C/text%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="/admin/styles.css" />
+  </head>
+  <body>
+    <section class="login" id="login-screen">
+      <form class="login-card" id="login-form">
+        <p class="eyebrow">Digital business card</p>
+        <h1>Вход в админ-панель</h1>
+        <p class="muted">
+          Учётная запись создаётся при старте приложения из переменных окружения
+          <code>ADMIN_EMAIL</code> и <code>ADMIN_PASSWORD</code>.
+        </p>
+        <label>Email<input id="login-email" type="email" autocomplete="username" required /></label>
+        <label
+          >Пароль<input
+            id="login-password"
+            type="password"
+            autocomplete="current-password"
+            required
+        /></label>
+        <button class="btn primary" type="submit" id="login-submit">Войти</button>
+        <p class="error" id="login-error" hidden></p>
+      </form>
+    </section>
+
+    <div class="shell" id="shell" hidden>
+      <aside class="sidebar">
+        <div class="brand">визитка<span>/admin</span></div>
+        <nav id="nav">
+          <button type="button" class="nav-btn is-active" data-action="panel" data-panel="profile">
+            Профиль
+          </button>
+          <button type="button" class="nav-btn" data-action="panel" data-panel="skills">
+            Навыки
+          </button>
+          <button type="button" class="nav-btn" data-action="panel" data-panel="experience">
+            Опыт работы
+          </button>
+          <button type="button" class="nav-btn" data-action="panel" data-panel="projects">
+            Проекты
+          </button>
+        </nav>
+        <div class="sidebar-footer">
+          <a href="/" target="_blank" rel="noreferrer">Открыть визитку ↗</a>
+          <a href="/graphql" target="_blank" rel="noreferrer">Apollo Sandbox ↗</a>
+          <button type="button" class="link-btn" data-action="logout">Выйти</button>
+        </div>
+      </aside>
+
+      <main class="main">
+        <header class="main-header">
+          <div>
+            <p class="eyebrow">Администрирование</p>
+            <h1 id="panel-title">Профиль</h1>
+          </div>
+          <span class="status" id="status">Загрузка…</span>
+        </header>
+
+        <section class="panel is-active" data-panel-view="profile">
+          <form class="card form" id="profile-form">
+            <h2>Основные данные</h2>
+            <div class="grid-2">
+              <label>Имя и фамилия<input id="profile-name" maxlength="120" required /></label>
+              <label>Заголовок<input id="profile-headline" maxlength="160" required /></label>
+            </div>
+            <label
+              >Краткое описание<textarea
+                id="profile-description"
+                rows="4"
+                maxlength="2000"
+                required
+              ></textarea>
+            </label>
+            <div class="grid-3">
+              <label>Email<input id="profile-email" type="email" required /></label>
+              <label>Локация<input id="profile-location" maxlength="120" /></label>
+              <label
+                >Аватар (URL)<input id="profile-avatar" maxlength="500" placeholder="https://…"
+              /></label>
+            </div>
+            <div class="form-footer">
+              <button class="btn primary" type="submit">Сохранить профиль</button>
+              <p class="error" id="profile-error" hidden></p>
+            </div>
+          </form>
+
+          <div class="card">
+            <h2>Профессиональные ссылки</h2>
+            <ul class="rows" id="links-list"></ul>
+            <form class="form inset" id="link-form">
+              <div class="grid-3">
+                <label
+                  >Название<input id="link-label" maxlength="80" placeholder="GitHub" required
+                /></label>
+                <label
+                  >URL<input
+                    id="link-url"
+                    maxlength="500"
+                    placeholder="https://github.com/username"
+                    required
+                /></label>
+                <label>Тип<select id="link-kind"></select></label>
+              </div>
+              <div class="form-footer">
+                <button class="btn" type="submit">Добавить ссылку</button>
+                <p class="error" id="link-error" hidden></p>
+              </div>
+            </form>
+          </div>
+        </section>
+
+        <section class="panel" data-panel-view="skills">
+          <form class="card form" id="skill-form">
+            <h2 id="skill-form-title">Новый навык</h2>
+            <input type="hidden" id="skill-id" />
+            <div class="grid-4">
+              <label>Название<input id="skill-name" maxlength="60" required /></label>
+              <label>Категория<select id="skill-category"></select></label>
+              <label>Уровень<select id="skill-level"></select></label>
+              <label
+                >Порядок<input id="skill-order" type="number" min="0" max="999" value="0"
+              /></label>
+            </div>
+            <div class="form-footer">
+              <button class="btn primary" type="submit" id="skill-submit">Добавить</button>
+              <button
+                class="btn ghost"
+                type="button"
+                id="skill-cancel"
+                data-action="cancel-skill"
+                hidden
+              >
+                Отменить
+              </button>
+              <p class="error" id="skill-error" hidden></p>
+            </div>
+          </form>
+
+          <div class="card">
+            <h2>Навыки <span class="count" id="skills-count"></span></h2>
+            <ul class="rows" id="skills-list"></ul>
+          </div>
+        </section>
+
+        <section class="panel" data-panel-view="experience">
+          <form class="card form" id="experience-form">
+            <h2 id="experience-form-title">Новая позиция</h2>
+            <input type="hidden" id="experience-id" />
+            <div class="grid-2">
+              <label>Компания<input id="experience-company" maxlength="120" required /></label>
+              <label>Должность<input id="experience-position" maxlength="120" required /></label>
+            </div>
+            <div class="grid-3">
+              <label>Начало<input id="experience-start" type="month" required /></label>
+              <label>Окончание<input id="experience-end" type="month" /></label>
+              <label>Локация<input id="experience-location" maxlength="120" /></label>
+            </div>
+            <label
+              >Краткое описание роли<textarea
+                id="experience-summary"
+                rows="2"
+                maxlength="1000"
+              ></textarea>
+            </label>
+            <label
+              >Достижения — по одному в строке<textarea
+                id="experience-achievements"
+                rows="4"
+              ></textarea>
+            </label>
+            <div class="form-footer">
+              <button class="btn primary" type="submit" id="experience-submit">Добавить</button>
+              <button
+                class="btn ghost"
+                type="button"
+                id="experience-cancel"
+                data-action="cancel-experience"
+                hidden
+              >
+                Отменить
+              </button>
+              <p class="error" id="experience-error" hidden></p>
+            </div>
+          </form>
+
+          <div class="card">
+            <h2>Опыт работы <span class="count" id="experience-count"></span></h2>
+            <ul class="rows" id="experience-list"></ul>
+          </div>
+        </section>
+
+        <section class="panel" data-panel-view="projects">
+          <form class="card form" id="project-form">
+            <h2 id="project-form-title">Новый проект</h2>
+            <input type="hidden" id="project-id" />
+            <label>Название<input id="project-name" maxlength="120" required /></label>
+            <label
+              >Описание<textarea id="project-description" rows="3" maxlength="1200"></textarea>
+            </label>
+            <div class="grid-2">
+              <label
+                >Ссылка на проект<input id="project-url" maxlength="500" placeholder="https://…"
+              /></label>
+              <label
+                >Репозиторий<input
+                  id="project-repo"
+                  maxlength="500"
+                  placeholder="https://github.com/…"
+              /></label>
+            </div>
+            <fieldset class="techs">
+              <legend>Технологии из списка навыков</legend>
+              <div class="techs-grid" id="project-techs"></div>
+            </fieldset>
+            <div class="form-footer">
+              <button class="btn primary" type="submit" id="project-submit">Добавить</button>
+              <button
+                class="btn ghost"
+                type="button"
+                id="project-cancel"
+                data-action="cancel-project"
+                hidden
+              >
+                Отменить
+              </button>
+              <p class="error" id="project-error" hidden></p>
+            </div>
+          </form>
+
+          <div class="card">
+            <h2>Проекты <span class="count" id="projects-count"></span></h2>
+            <ul class="rows" id="projects-list"></ul>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div class="toast" id="toast" hidden></div>
+    <script src="/admin/admin.js" defer></script>
+  </body>
+</html>
